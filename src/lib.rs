@@ -24,6 +24,20 @@ impl Pesel {
     fn check_correctness (candidate: &str) -> bool {
         if candidate.bytes().count() == 11 {
             let weights: [u32; 11] = [1, 3, 7, 9, 1, 3, 7, 9, 1, 3, 1];
+            let mut digit_amount = 0;
+            
+            let pesel_digits = candidate
+            .chars()
+            .map(|char| {
+                let digit_opt = char.to_digit(10);
+                if let Some(_) = digit_opt {
+                    digit_amount += 1;
+                }
+                digit_opt
+            });
+            for digit in pesel_digits {
+                println!("{:?}", digit);
+            }
             let mut sum = 0;
 
             for (offset, char) in candidate[..10].char_indices() {
