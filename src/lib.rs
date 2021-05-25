@@ -83,6 +83,5 @@ pub fn header () -> Result<Pesel, PeselErr> {
         input_pesel = String::new();
         continue;
     }
-    println!("\n================================\n");
     return Err(PeselErr::Generic);
 }
