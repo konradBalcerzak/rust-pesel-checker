@@ -1,7 +1,9 @@
 use pesel_lib;
 
 fn main() {
-    pesel_lib::header();
+    let pesel = pesel_lib::header();
 
-    println!("\n================================\n");
+    println!("PESEL: {}", pesel);
+
+    println!("================================");
 }
