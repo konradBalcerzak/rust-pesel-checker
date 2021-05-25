@@ -1,9 +1,9 @@
 // use std::env;
 
-struct DigitVec(Vec<u32>);
+struct PeselVec(Vec<u32>);
 
-impl DigitVec {
-    fn new (candidate: &str) -> Result<DigitVec, PeselErr> {
+impl PeselVec {
+    fn new (candidate: &str) -> Result<PeselVec, PeselErr> {
         let mut pesel_digits: Vec<u32> = Vec::new();
         
         let candidate_iter = candidate
@@ -17,7 +17,7 @@ impl DigitVec {
                 return Err(PeselErr::Message(String::from("Podany pesel zawiera inne znaki niż cyfry")));
             }
         }
-        Ok(DigitVec(pesel_digits))
+        Ok(PeselVec(pesel_digits))
     }
 }
 
@@ -33,7 +33,7 @@ pub struct Pesel {
 
 impl Pesel {
     fn new (input: &str) -> Result<Pesel, PeselErr> {
-        let digits = DigitVec::new(input)?;
+        let digits = PeselVec::new(input)?;
         Pesel::check_correctness(&digits.0)?;
         return Ok(Pesel {
             // value: digits.0
