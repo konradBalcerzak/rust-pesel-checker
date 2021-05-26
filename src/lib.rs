@@ -30,7 +30,11 @@ pub struct Pesel {
 }
 
 impl Pesel {
-    fn new (input: &str) -> Result<Pesel, String> {
+    fn month_prefixes() -> [u32; 5] {
+        [8, 0, 2, 4, 6]
+    }
+    
+    pub fn new (input: &str) -> Result<Pesel, String> {
         let digits = DigitVec::new(input)?;
         Pesel::check_correctness(&digits.0)?;
         return Ok(Pesel {
@@ -41,31 +45,8 @@ impl Pesel {
         });
     }
 
-    fn slice_to_month(month_digits: &[u32]) -> u32 {
-        const MONTH_PREFIXES: [u32; 5] = [8, 0, 2, 4, 6];
-        
-        for prefix in MONTH_PREFIXES.iter() {
-            let result = month_digits[0] as i32 - *prefix as i32;
-            if  result >= 0 && result <= 1  {
-                return result as u32 * 10 + month_digits[1];
-            }
-        };
-        0
-    }
-
-    fn slice_to_year(year_digits: &[u32], month_digit: &u32) -> u32 {
-        const MONTH_PREFIXES: [u32; 5] = [8, 0, 2, 4, 6];
-
-        let mut year = 1800;
-        for prefix in MONTH_PREFIXES.iter() {
-            let result = *month_digit as i32 - *prefix as i32;
-            if  result >= 0 && result <= 1 {
-                break;
-            }
-            year += 100;
-        }
-        year += year_digits[0] * 10 + year_digits[1];
-        year
+    pub fn get_birthday(&self) -> String {
+        format!("{}-{}-{}", self.year, prepend_zero(self.month), prepend_zero(self.day))
     }
     
     fn check_correctness (candidate: &Vec<u32>) -> Result<(), String> {
@@ -98,28 +79,28 @@ impl Pesel {
         sum = sum % 10;
         if let Some(control_digit) = candidate.last() {
             if *control_digit == 10 - sum || *control_digit == sum {
-                return Ok(());
+                Ok(())
             } else {
-                return Err(String::from("Suma kontrolna niepoprawna"))
+                Err(String::from("Suma kontrolna niepoprawna"))
             }
+        } else {
+            Err(String::from("Nieznany błąd"))
         }
-        Err(String::from("Nieznany błąd"))
+        
     }
 
     fn correct_month(month_digits: &[u32]) -> bool {
-        const MONTH_PREFIXES: [u32; 5] = [8, 0, 2, 4, 6];
         let mut first_month_digit = 0;
 
-        for prefix in MONTH_PREFIXES.iter() {
-            let result = month_digits[0] as i32 - *prefix as i32;
-            if  result >= 0 && result <= 1  {
-                first_month_digit = result;
+        for prefix in Pesel::month_prefixes().iter() {
+            if month_digits[0] == *prefix || month_digits[0] == *prefix+1 {
+                first_month_digit = month_digits[0] - prefix;
             }
         }
         if first_month_digit == 1 && month_digits[1] > 2 {
             return false;
-        }
-        else if month_digits[0] == 0 && month_digits[1] == 0 {
+        };
+        if month_digits[0] == 0 && month_digits[1] == 0 {
             return false;
         };
         return true;
@@ -137,6 +118,27 @@ impl Pesel {
         }
         let days_in_month: [u32; 12] = [31, february_days, 29, 30, 31, 30, 31, 31, 30, 31, 30, 31];
         day <= days_in_month[month as usize -1]
+    }
+
+    fn slice_to_month(month_digits: &[u32]) -> u32 {
+        for prefix in Pesel::month_prefixes().iter() {
+            let result = month_digits[0] as i32 - *prefix as i32;
+            if  result >= 0 && result <= 1  {
+                return result as u32 * 10 + month_digits[1];
+            }
+        };
+        0
+    }
+
+    fn slice_to_year(year_digits: &[u32], month_digit: &u32) -> u32 {
+        let mut year = 0;
+        for prefix in Pesel::month_prefixes().iter() {
+            if *month_digit == *prefix || *month_digit == *prefix+1 {
+                break
+            }
+            year += 100;
+        }
+        1800 + year + year_digits[0] * 10 + year_digits[1]
     }
 }
 
@@ -156,9 +158,8 @@ pub fn header () -> Pesel {
     use std::io::stdin;
 
     let mut input_pesel = String::new();
-
+    println!("================================");
     loop {
-        println!("================================");
         println!("Podaj numer PESEL:");
         if let Ok(_) =  stdin().read_line(&mut input_pesel) {
             match Pesel::new(input_pesel.trim()) {
@@ -172,16 +173,24 @@ pub fn header () -> Pesel {
         }
         println!("--------------------------------");
         input_pesel = String::new();
-        continue;
     }
 }
 
-fn slice_to_num (slice: &[u32]) -> i32 {
-    let mut number = 0;
+fn slice_to_num (slice: &[u32]) -> u32 {
     let digit_amount = slice.len();
+    let mut number = 0;
+    let mut power: u32;
     for (index, digit) in slice.iter().enumerate() {
-        number += 10i32.pow(digit_amount as u32-1 - index as u32) * *digit as i32;
+        power = digit_amount as u32 -1 - index as u32;
+        number += 10u32.pow(power) * *digit;
     };
-    println!("{:?}: {}",slice , number);
-    number as i32
+    number
+}
+
+fn prepend_zero(num: u32) -> String {
+    if num > 10 {
+        num.to_string()
+    } else {
+        format!("0{}", num)
+    }
 }
