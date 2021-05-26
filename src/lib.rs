@@ -173,11 +173,11 @@ pub fn header() -> Pesel {
     let mut input_pesel = String::new();
     println!("================================");
     loop {
-        println!("Podaj numer PESEL:");
+        println!("\x1b[1;34mPodaj numer PESEL:\x1b[0m");
         if let Ok(_) =  stdin().read_line(&mut input_pesel) {
             match Pesel::new(input_pesel.trim()) {
                 Err(error_message) => {
-                    println!("BŁĄD: {}", error_message);
+                    println!("\x1b[0;31mBŁĄD: {}\x1b[0m", error_message);
                 }
                 Ok(pesel) => {
                     return pesel;
