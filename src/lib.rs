@@ -3,7 +3,7 @@ use std::fmt;
 struct DigitVec(Vec<u32>);
 
 impl DigitVec {
-    fn new (candidate: &str) -> Result<DigitVec, String> {
+    fn new(candidate: &str) -> Result<DigitVec, String> {
         let mut pesel_digits: Vec<u32> = Vec::new();
         
         let candidate_iter = candidate
@@ -11,7 +11,7 @@ impl DigitVec {
             .map(|char| char.to_digit(10));
 
         for digit_opt in candidate_iter {
-            if let Some (digit) = digit_opt {
+            if let Some(digit) = digit_opt {
                 pesel_digits.push(digit);
             } else {
                 return Err(String::from("Podany pesel zawiera inne znaki niż cyfry"));
@@ -34,7 +34,7 @@ impl Pesel {
         [8, 0, 2, 4, 6]
     }
     
-    pub fn new (input: &str) -> Result<Pesel, String> {
+    pub fn new(input: &str) -> Result<Pesel, String> {
         let digits = DigitVec::new(input)?;
         Pesel::check_correctness(&digits.0)?;
         return Ok(Pesel {
@@ -48,8 +48,16 @@ impl Pesel {
     pub fn get_birthday(&self) -> String {
         format!("{}-{}-{}", self.year, prepend_zero(self.month), prepend_zero(self.day))
     }
+
+    pub fn get_sex(&self) -> PersonSex {
+        if self.value[9] % 2 == 0 {
+            PersonSex::Female
+        } else {
+            PersonSex::Male
+        }
+    }
     
-    fn check_correctness (candidate: &Vec<u32>) -> Result<(), String> {
+    fn check_correctness(candidate: &Vec<u32>) -> Result<(), String> {
         let digit_count = candidate.len();
         if digit_count < 11 {
             return Err(String::from("Za mało znaków"));
@@ -154,7 +162,12 @@ impl fmt::Display for Pesel {
     }
 }
 
-pub fn header () -> Pesel {
+pub enum PersonSex {
+    Male,
+    Female
+}
+
+pub fn header() -> Pesel {
     use std::io::stdin;
 
     let mut input_pesel = String::new();
@@ -166,7 +179,7 @@ pub fn header () -> Pesel {
                 Err(error_message) => {
                     println!("BŁĄD: {}", error_message);
                 }
-                Ok (pesel) => {
+                Ok(pesel) => {
                     return pesel;
                 }
             }
@@ -176,7 +189,7 @@ pub fn header () -> Pesel {
     }
 }
 
-fn slice_to_num (slice: &[u32]) -> u32 {
+fn slice_to_num(slice: &[u32]) -> u32 {
     let digit_amount = slice.len();
     let mut number = 0;
     let mut power: u32;
