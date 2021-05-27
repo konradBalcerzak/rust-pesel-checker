@@ -11,7 +11,13 @@ name = "pesel_lib"
 path = "src/lib.rs"
 
 [[bin]]
-name = "pesel_main"
+name = "pesel"
 path = "src/main.rs"
+
+[profile.release]
+opt-level = 'z'  # Optimize for size.
+lto = true
+codegen-units = 1
+panic = 'abort'
 
 [dependencies]
