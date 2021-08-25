@@ -1,4 +1,3 @@
-use pesel_lib;
 use pesel_lib::PersonSex;
 
 fn main() {

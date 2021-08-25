@@ -1,5 +1,4 @@
 use std::fmt;
-
 struct DigitVec(Vec<u32>);
 
 impl DigitVec {
@@ -37,12 +36,12 @@ impl Pesel {
     pub fn new(input: &str) -> Result<Pesel, String> {
         let digits = DigitVec::new(input)?;
         Pesel::check_correctness(&digits.0)?;
-        return Ok(Pesel {
+        Ok(Pesel {
             year: Pesel::slice_to_year(&digits.0[0..2], &digits.0[2]),
             month: Pesel::slice_to_month(&digits.0[2..4]),
             day: slice_to_num(&digits.0[4..6]) as u32,
             value: digits.0
-        });
+        })
     }
 
     pub fn get_birthday(&self) -> String {
@@ -57,14 +56,13 @@ impl Pesel {
         }
     }
     
-    fn check_correctness(candidate: &Vec<u32>) -> Result<(), String> {
+    fn check_correctness(candidate: &[u32]) -> Result<(), String> {
         let digit_count = candidate.len();
-        if digit_count < 11 {
-            return Err(String::from("Za mało znaków"));
-        }
-        else if digit_count > 11 {
-            return Err(String::from("Za dużo znaków"));
-        }
+        match digit_count {
+            x if x < 11 => return Err(String::from("Za mało znaków")),
+            x if x > 11 => return Err(String::from("Za dużo znaków")),
+            _ => ()
+        };
 
         if !Pesel::correct_month(&candidate[2..4]) {
             return Err(String::from("Podany miesiąc jest nieprawidłowy"));
@@ -75,16 +73,14 @@ impl Pesel {
 
         const MULTIPLIERS: [u32; 11] = [1, 3, 7, 9, 1, 3, 7, 9, 1, 3, 1];
         let mut sum = 0;
-        let mut iteration = 0;
 
-        for (pesel_digit, multiplier) in candidate.iter().zip(MULTIPLIERS.iter()) {
+        for (iteration, (pesel_digit, multiplier)) in candidate.iter().zip(MULTIPLIERS.iter()).enumerate() {
             if iteration == 10 {
                 break;
             }
-            iteration += 1;
             sum += pesel_digit * multiplier;
         }
-        sum = sum % 10;
+        sum %= 10;
         if let Some(control_digit) = candidate.last() {
             if *control_digit == 10 - sum || *control_digit == sum {
                 Ok(())
@@ -111,13 +107,13 @@ impl Pesel {
         if month_digits[0] == 0 && month_digits[1] == 0 {
             return false;
         };
-        return true;
+        true
     }
 
     fn correct_day(year_digits: &[u32],month_digits: &[u32], day_digits: &[u32]) -> bool {
         let month = Pesel::slice_to_month(month_digits);
         let day = day_digits[0] * 10 + day_digits[1];
-        if day < 1 || day > 31 {
+        if !(1..=31).contains(&day) {
             return false;
         }
         let mut february_days = 28;
@@ -131,7 +127,7 @@ impl Pesel {
     fn slice_to_month(month_digits: &[u32]) -> u32 {
         for prefix in Pesel::month_prefixes().iter() {
             let result = month_digits[0] as i32 - *prefix as i32;
-            if  result >= 0 && result <= 1  {
+            if (0..=1).contains(&result) {
                 return result as u32 * 10 + month_digits[1];
             }
         };
@@ -174,7 +170,7 @@ pub fn header() -> Pesel {
     println!("================================");
     loop {
         println!("\x1b[1;34mPodaj numer PESEL:\x1b[0m");
-        if let Ok(_) =  stdin().read_line(&mut input_pesel) {
+        if stdin().read_line(&mut input_pesel).is_ok() {
             match Pesel::new(input_pesel.trim()) {
                 Err(error_message) => {
                     println!("\x1b[0;31mBŁĄD: {}\x1b[0m", error_message);
