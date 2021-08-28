@@ -21,3 +21,4 @@ codegen-units = 1
 panic = 'abort'
 
 [dependencies]
+chrono = "0.4"

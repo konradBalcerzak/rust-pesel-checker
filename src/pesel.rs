@@ -1,6 +1,8 @@
 use std::fmt;
+use chrono::NaiveDate;
 use crate::digit_vec::DigitVec;
 
+#[derive(Debug)]
 pub enum PersonGender {
     Male,
     Female
@@ -9,9 +11,8 @@ pub enum PersonGender {
 #[derive(Debug)]
 pub struct Pesel {
     value: DigitVec,
-    year: u32,
-    month: u32,
-    day: u32,
+    date: NaiveDate,
+    gender: PersonGender
 }
 
 impl Pesel {
@@ -20,20 +21,26 @@ impl Pesel {
     }
     
     pub fn new(input: &str) -> Result<Pesel, String> {
-        let digit_vec = DigitVec::new(input)?;
-        let digits = digit_vec.get();
+        let value = DigitVec::new(input)?;
+        let digits = value.get();
         Pesel::check_correctness(digits)?;
+        let (year, month, day) = Pesel::extract_ymd(value.get());
+
+        let date = NaiveDate::from_ymd(year, month, day);
+        let gender = match digits[9] {
+            x if x % 2 == 0 => PersonGender::Female,
+            _ => PersonGender::Male, 
+        };
 
         Ok(Pesel {
-            year: Pesel::slice_to_year(&digits[0..2], &digits[2]),
-            month: Pesel::slice_to_month(&digits[2..4]),
-            day: slice_to_num(&digits[4..6]) as u32,
-            value: digit_vec
+            value,
+            date,
+            gender,
         })
     }
 
-    pub fn get_birthday(&self) -> [u32; 3] {
-        [self.year, self.month, self.day]
+    pub fn get_birthday(&self) -> NaiveDate {
+        self.date
     }
 
     pub fn get_gender(&self) -> PersonGender {
@@ -45,32 +52,31 @@ impl Pesel {
         }
     }
     
-    fn check_correctness(candidate: &[u32]) -> Result<(), String> {
-        let digit_count = candidate.len();
-        match digit_count {
+    fn check_correctness(candidate_pesel: &[u32]) -> Result<(), String> {
+        match candidate_pesel.len() {
             x if x < 11 => return Err(String::from("Za mało znaków")),
             x if x > 11 => return Err(String::from("Za dużo znaków")),
             _ => ()
         };
-
-        if !Pesel::correct_month(&candidate[2..4]) {
+        
+        if !Pesel::correct_month(&candidate_pesel[2..4]) {
             return Err(String::from("Podany miesiąc jest nieprawidłowy"));
         }
-        if !Pesel::correct_day(&candidate[0..2], &candidate[2..4], &candidate[4..6]) {
+        if !Pesel::correct_day(candidate_pesel) {
             return Err(String::from("Podany dzień jest nieprawidłowy"));
         }
 
         const MULTIPLIERS: [u32; 11] = [1, 3, 7, 9, 1, 3, 7, 9, 1, 3, 1];
         let mut sum = 0;
 
-        for (iteration, (pesel_digit, multiplier)) in candidate.iter().zip(MULTIPLIERS).enumerate() {
+        for (iteration, (pesel_digit, multiplier)) in candidate_pesel.iter().zip(MULTIPLIERS).enumerate() {
             if iteration == 10 {
                 break;
             }
             sum += pesel_digit * multiplier;
         }
         sum %= 10;
-        if let Some(control_digit) = candidate.last() {
+        if let Some(control_digit) = candidate_pesel.last() {
             if *control_digit == 10 - sum || *control_digit == sum {
                 Ok(())
             } else {
@@ -81,7 +87,6 @@ impl Pesel {
         }
         
     }
-
     fn correct_month(month_digits: &[u32]) -> bool {
         let mut first_month_digit = 0;
 
@@ -90,48 +95,48 @@ impl Pesel {
                 first_month_digit = month_digits[0] - prefix;
             }
         }
-        if first_month_digit == 1 && month_digits[1] > 2 {
-            return false;
-        };
-        if month_digits[0] == 0 && month_digits[1] == 0 {
+        if (first_month_digit == 1 && month_digits[1] > 2) || (month_digits[0] == 0 && month_digits[1] == 0) {
             return false;
         };
         true
     }
+    fn correct_day(candidate_pesel: &[u32]) -> bool {
+        let month = Pesel::extract_month(candidate_pesel);
+        let day = candidate_pesel[0] * 10 + candidate_pesel[1];
 
-    fn correct_day(year_digits: &[u32],month_digits: &[u32], day_digits: &[u32]) -> bool {
-        let month = Pesel::slice_to_month(month_digits);
-        let day = day_digits[0] * 10 + day_digits[1];
-        if !(1..=31).contains(&day) {
-            return false;
-        }
         let mut february_days = 28;
-        if (year_digits[0] * 10 + year_digits[1]) % 4 == 0 {
+        if (candidate_pesel[0] * 10 + candidate_pesel[1]) % 4 == 0 {
             february_days = 29;
         }
         let days_in_month: [u32; 12] = [31, february_days, 29, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-        day <= days_in_month[month as usize -1]
+
+        day <= days_in_month[month as i32 as usize -1]
     }
 
-    fn slice_to_month(month_digits: &[u32]) -> u32 {
-        for prefix in Pesel::month_prefixes().iter() {
-            let result = month_digits[0] as i32 - *prefix as i32;
-            if (0..=1).contains(&result) {
-                return result as u32 * 10 + month_digits[1];
-            }
-        };
-        0
+    fn extract_ymd(pesel_digits: &[u32]) -> (i32, u32, u32) {
+        (Pesel::extract_year(pesel_digits), Pesel::extract_month(pesel_digits), Pesel::extract_day(pesel_digits))
     }
-
-    fn slice_to_year(year_digits: &[u32], month_digit: &u32) -> u32 {
+    fn extract_year(pesel_digits: &[u32]) -> i32 {
         let mut year = 0;
-        for prefix in Pesel::month_prefixes().iter() {
-            if *month_digit == *prefix || *month_digit == *prefix+1 {
+        for prefix in Pesel::month_prefixes() {
+            if pesel_digits[2] == prefix || pesel_digits[2] == prefix+1 {
                 break
             }
             year += 100;
         }
-        1800 + year + year_digits[0] * 10 + year_digits[1]
+        (1800 + year + pesel_digits[0] * 10 + pesel_digits[1]) as i32
+    }
+    fn extract_month(pesel_digits: &[u32]) -> u32 {
+        for prefix in Pesel::month_prefixes().iter() {
+            let result = pesel_digits[2] as i32 - *prefix as i32;
+            if (0..2).contains(&result) {
+                return result as u32 * 10 + pesel_digits[3];
+            }
+        };
+        0
+    }
+    fn extract_day(pesel_digits: &[u32]) -> u32 {
+        pesel_digits[4] * 10 + pesel_digits[5]
     }
 }
 
@@ -145,15 +150,4 @@ impl fmt::Display for Pesel {
         }
         write!(f, "{}", pesel_fmt)
     }
-}
-
-fn slice_to_num(slice: &[u32]) -> u32 {
-    let digit_amount = slice.len();
-    let mut number = 0;
-    let mut power: u32;
-    for (index, digit) in slice.iter().enumerate() {
-        power = digit_amount as u32 -1 - index as u32;
-        number += 10u32.pow(power) * *digit;
-    };
-    number
 }

@@ -9,10 +9,10 @@ fn cli_header() {
     println!("================================");
     
     let pesel = read_pesel();
-    let [year, month, day] = pesel.get_birthday();
+    let date = pesel.get_birthday();
     let gender = match pesel.get_gender() { Male => 'M', Female => 'K', };
 
-    println!("\x1b[1;34mData urodzenia:\x1b[0m \x1b[1;33m{}-{:02}-{:02}\x1b[0m", year, month, day);
+    println!("\x1b[1;34mData urodzenia:\x1b[0m \x1b[1;33m{}\x1b[0m", date);
     println!("\x1b[1;34mPłeć:\x1b[0m \x1b[1;33m{}\x1b[0m", gender);
 
     println!("================================");

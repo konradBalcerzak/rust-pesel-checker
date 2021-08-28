@@ -1,7 +1,5 @@
 #[derive(Debug)]
-pub struct DigitVec(
-    Vec<u32>
-);
+pub struct DigitVec(Vec<u32>);
 
 impl DigitVec {
     pub fn new(candidate: &str) -> Result<DigitVec, &str> {
